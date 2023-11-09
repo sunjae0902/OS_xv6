@@ -120,6 +120,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int             set_proc_priority(int,int);
+int             get_proc_priority(int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -188,6 +190,9 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // forknexec.c
 int				forknexec(const char *path, const char **args);
+
+
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

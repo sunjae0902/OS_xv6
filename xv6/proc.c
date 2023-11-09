@@ -88,7 +88,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-
+  p->priority = 5;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -122,9 +122,10 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
+    
 
   p = allocproc();
-  
+
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
@@ -183,6 +184,7 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
+ 
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -199,6 +201,8 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->priority = np->parent->priority;
+
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -214,7 +218,7 @@ fork(void)
 
   acquire(&ptable.lock);
 
-  np->state = RUNNABLE;
+    np->state = RUNNABLE;
 
   release(&ptable.lock);
 
@@ -532,5 +536,46 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int
+set_proc_priority(int pid, int priority){
+    struct proc *p;
+   
+    acquire(&ptable.lock); // 프로세스 락 획득, 다른 프로세스가 ptable에 접근하는 것을 막음
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){ // ptable에 저장된 프로세스들을 순회하면서,pid에 해당하는 프로세스를 찾음
+            if(p->pid == pid){
+                p->priority = priority; // 우선순위 저장
+                release(&ptable.lock); // ptable을 모두 순회하면 테이블 락 해제.
+                return p->priority; // 성공적으로 저장
+            }
+            continue;
+        }
+    // 프로세스 찾기 실패
+    cprintf("프로세스 찾을 수 없음\n");
+    release(&ptable.lock);
+    return -2;
+}
+
+int
+get_proc_priority(int pid){
+    struct proc *p;
+    
+    acquire(&ptable.lock); // 프로세스 락 획득, 다른 프로세스가 ptable에 접근하는 것을 막음
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){ // ptable에 저장된 프로세스들을 순회하면서,pid에 해당하는 프로세스를 찾음
+            if(p->pid == pid){
+                release(&ptable.lock); // ptable을 모두 순회하면 테이블 락 해제 후 우선순위 반환
+                return p->priority;
+            }
+            continue;
+        }
+    // 프로세스 찾기 실패
+    cprintf("프로세스 찾을 수 없음\n");
+    release(&ptable.lock);
+    return -2;
+    
+}
+
+
+
 
 

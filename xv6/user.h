@@ -24,6 +24,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int forknexec(const char *path, const char **args);
+int set_proc_priority(int, int);
+int get_proc_priority(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
