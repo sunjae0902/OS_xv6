@@ -28,6 +28,7 @@ OBJS = \
 	vectors.o\
 	vm.o\
 	forknexec.o\
+	
 
 # Cross-compiling (e.g., on Mac OS X)
 # TOOLPREFIX = i386-jos-elf
@@ -184,6 +185,7 @@ UPROGS=\
 	_zombie\
 	_helloworld\
 	_forknexecTest\
+	_priorityTest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -258,6 +260,7 @@ EXTRA=\
 	.gdbinit.tmpl gdbutil\
 	helloworld.c\
 	forknexecTest.c\
+	priorityTest.c\
 
 dist:
 	rm -rf dist

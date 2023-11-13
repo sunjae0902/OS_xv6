@@ -18,7 +18,9 @@ int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
 
+
 static void wakeup1(void *chan);
+
 
 void
 pinit(void)
@@ -122,7 +124,6 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
-    
 
   p = allocproc();
 
@@ -152,6 +153,8 @@ userinit(void)
   p->state = RUNNABLE;
 
   release(&ptable.lock);
+
+    
 }
 
 // Grow current process's memory by n bytes.
@@ -198,10 +201,11 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+    
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  np->priority = np->parent->priority;
+  np->priority = np->parent->priority; // copy Parent's Priority value
 
 
   // Clear %eax so that fork returns 0 in the child.
@@ -217,8 +221,8 @@ fork(void)
   pid = np->pid;
 
   acquire(&ptable.lock);
-
-    np->state = RUNNABLE;
+    
+  np->state = RUNNABLE;
 
   release(&ptable.lock);
 
@@ -326,37 +330,47 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
-  
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
-
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+    struct proc *p;
+    struct cpu *c = mycpu();
+    c->proc = 0;
+    
+    for(;;){
+        // Enable interrupts on this processor.
+        sti();
+        
+        // Loop over process table looking for process to run.
+        acquire(&ptable.lock);
+        
+        struct proc *high_p = 0;
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+            if(p->state != RUNNABLE)
+                continue;
+            if(!high_p) // 아직 우선순위 높은 프로세스가 없는 경우
+                high_p = p;
+            else{
+                if(high_p->priority > p->priority) //우선순위 비교, 값이 작을수로 높다
+                    high_p = p;
+                else if(high_p->priority == p->priority && high_p->pid > p->pid) //같은 경우
+                    high_p = p;
+            }
+        }
+        if(high_p){ // context switching
+    
+            c->proc = high_p;
+            switchuvm(high_p);
+            high_p->state = RUNNING;
+            
+            swtch(&(c->scheduler), high_p->context); //context switch
+            switchkvm();
+            // aging -> 실행된 프로세스의 우선순위 1 증가
+           // if(high_p->priority < 10)
+           //     high_p->priority++;
+            c->proc = 0;
+           
+        }
+        release(&ptable.lock);
+        
     }
-    release(&ptable.lock);
-
-  }
 }
 
 // Enter scheduler.  Must hold only ptable.lock
@@ -391,6 +405,7 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
+   
   sched();
   release(&ptable.lock);
 }
@@ -574,8 +589,5 @@ get_proc_priority(int pid){
     return -2;
     
 }
-
-
-
 
 

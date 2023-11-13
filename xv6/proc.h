@@ -13,6 +13,8 @@ struct cpu {
 extern struct cpu cpus[NCPU];
 extern int ncpu;
 
+
+
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
 // Don't need to save all the segment registers (%cs, etc),
@@ -36,7 +38,9 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-    int priority;
+    int priority;  // Process Priority
+   
+    
     uint sz;                     // Size of process memory (bytes)
     pde_t* pgdir;                // Page table
     char *kstack;                // Bottom of kernel stack for this process
