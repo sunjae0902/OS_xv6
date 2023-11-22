@@ -9,6 +9,8 @@
 #include "mmu.h"
 #include "spinlock.h"
 
+unsigned int num_free_pages; // 남은 페이지 수를 나타내는 전역변수 선언
+
 void freerange(void *vstart, void *vend);
 extern char end[]; // first address after kernel loaded from ELF file
                    // defined by the kernel linker script in kernel.ld
@@ -34,6 +36,7 @@ kinit1(void *vstart, void *vend)
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
   freerange(vstart, vend);
+  num_free_pages = 0;
 }
 
 void
@@ -74,6 +77,8 @@ kfree(char *v)
   kmem.freelist = r;
   if(kmem.use_lock)
     release(&kmem.lock);
+    
+  num_free_pages--;
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -91,6 +96,12 @@ kalloc(void)
     kmem.freelist = r->next;
   if(kmem.use_lock)
     release(&kmem.lock);
+  num_free_pages++;
   return (char*)r;
+}
+
+int
+getNumFreePages(void){
+    return num_free_pages;
 }
 

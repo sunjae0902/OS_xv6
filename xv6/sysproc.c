@@ -142,3 +142,7 @@ sys_get_proc_priority(void){
     
 }
 
+int sys_getNumFreePages(void){
+    return getNumFreePages();
+}
+
